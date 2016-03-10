@@ -18,15 +18,20 @@
 <body%body_prop;>
 %message_to_wizard;
 
+%( --- parameters documentation (partial, to be completed) ---
+  pdf : "on" -> removes unwanted links for pdf printing (the slice view link)
+  ccopy : "on" -> removes the copyright section
+%)
+
 %if;not cancel_links;
   <table style="float:%right;"><tr><td>
     %if;(referer != "")
       <a href="%referer;"><img
-       src="%image_prefix;/left.png"%wid_hei;left.png; 
+       src="%image_prefix;/left.png"%wid_hei;left.png;
        alt="&lt;&lt;" title="&lt;&lt;"%/></a>
     %end;
     <a href="%prefix;"><img%sp;
-    src="%image_prefix;/up.png"%wid_hei;up.png; 
+    src="%image_prefix;/up.png"%wid_hei;up.png;
     alt="^^" title="^^"%/></a>
   </td></tr></table>
   <hr style="clear:both; visibility:hidden;"%/>
@@ -34,7 +39,7 @@
 
 <a href="%prefix;" accesskey="T"></a>
 
-%if;(evar.slices = "on")
+%if;(evar.slices = "on")  %( ----- affichage par tranche ------- %)
   <h1>%nn;
     [*display by slices/slice width/overlap/total width]0%nn;
   </h1>
@@ -87,8 +92,8 @@
   </table>
   <p><input type="submit" value="Ok"%/></p>
   </form>
-%else;
-  %if;(evar.notab != "on")
+%else;  %( ---- case evar.slices != "on" , affichage avec un tableau ---- %)
+  %if;(evar.notab != "on" and evar.pdf != "on")
     <div style="text-align:%right;
     "><a href="%prefix;%foreach;env_binding;%env.key;=%env.val;;%end;
        notab=on;slices=on" accesskey="/"><tt>//</tt></a></div>
@@ -99,7 +104,7 @@
       <a href="%link_next;%if;(evar.image="on");image=on%end;" accesskey=">">[*next relationship path]</a>%nl;
     </p>
   %end;
-  %if;(evar.notab = "on" or evar.pos2 != "")
+  %if;(evar.notab = "on" or evar.pos2 != "")   %( ----- affichage sans tableau, juste en mode texte  ---- %)
     %let;dpos;%if;(evar.dpos != "")%evar.dpos;%else;78%end;%in;
     %let;pos1;%if;(evar.pos1 != "")%evar.pos1;%else;0%end;%in;
     %let;pos2;%if;(evar.pos2 != "")%evar.pos2;%else;%dpos;%end;%in;
@@ -139,7 +144,7 @@
       %end;
     %end;
     </pre>
-  %else;
+  %else;   %( ----- case (evar.notab != "on" and evar.pos2 = "")  --- affichage avec un tableau ----- %)
     <table border="%border;" width="100%%"><tr><td align="center">
     <table border="%border;" cellspacing="0" cellpadding="0">
     %foreach;dag_line;
@@ -149,7 +154,11 @@
         %if;dag_cell.is_nothing;&nbsp;%nn;
         %elseif;dag_cell.is_bar;
           %if;(dag_cell.bar_link != "" and evar.cgl != "on")
-            <a style="text-decoration:none" href="%dag_cell.bar_link;">|</a>%nn;
+            <a style="text-decoration:none" href="%dag_cell.bar_link;
+%(            %if;(evar.imgs != "");imgs=%evar.imgs;%end; -- will be usefull later if the imgs option can be implemented -- %)
+            %if;(evar.marriage = "on");marriage=on%end;
+            %if;(evar.pdf = "on");pdf=on%end;
+            %if;(evar.ccopy = "on");ccopy=on%end;">|</a>%nn;
           %else;|%end;
         %elseif;(dag_cell.item != "")%dag_cell.item;
         %elseif;(dag_cell.text != "")%dag_cell.text;
@@ -172,6 +181,8 @@
 %end;
 
 %base_trailer;
-%copyright;
+%if;(evar.ccopy != "on")
+  %copyright;
+%end;
 </body>
 </html>

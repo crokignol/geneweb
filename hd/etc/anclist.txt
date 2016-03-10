@@ -25,6 +25,15 @@
 <body%body_prop;>
 %message_to_wizard;
 
+%( --- parameters documentation (partial, to be completed) ---
+  occup : "on" -> displays occupation in the horizontal tree (t = "H")
+  bpl : "on" -> displays the birth places in the horizontal tree (t = "H")
+  dpl : "on" -> displays the death places in the horizontal tree (t = "H")
+  onepl : "on" -> displays one place, that is birth place if available and otherwise death place, in the horizontal tree (t = "H")
+  noimgMF : "on" -> removes M/F images
+  ccopy : "on" -> removes the copyright section
+%)
+
 <h1>%nn;
   %if;(evar.t = "F")
     %if;(public_name != "")%public_name;%else;%first_name;%end;
@@ -81,17 +90,24 @@
 %define;ancestors_by_list(xx, nnn)
   %if;(xx.has_parents and nnn > 1)
     <ul>
-    <li class="male"><a href="%prefix;
+    %if;(evar.noimgMF != "on")<li class="male">
+    %else;<li>
+    %end;
+    <a href="%prefix;
     %xx.father.access;">%xx.father;</a>%xx.father.title;%xx.father.dates;%nl;
     %apply;ancestors_by_list("xx.father", nnn - 1)</li>
-    <li class="female"><a href="%prefix;
+    %if;(evar.noimgMF != "on")<li class="female">
+    %else;<li>
+    %end;
+    <a href="%prefix;
     %xx.mother.access;">%xx.mother;</a>%xx.mother.title;%xx.mother.dates;%nl;
     %apply;ancestors_by_list("xx.mother", nnn - 1)</li>
     </ul>
   %end;
 %end;
 
-%define;ancestors_horizontally(pp, xx, ss1, ss2, ss3)
+%define;ancestors_horizontally_std(pp, xx, ss1, ss2, ss3)
+%( ------- standard design of the tree (this function is now replaced by the next one) -------%)
   %if;(xx > 0)
     %if;(pp.has_parents)
       %apply;ancestors_horizontally(
@@ -103,6 +119,40 @@
       %apply;ancestors_horizontally(
         "pp.mother", xx - 1, "ss3&nbsp;|&nbsp;&nbsp;&nbsp;",
         "ss3&nbsp;+--&nbsp;", "ss3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
+    %end;
+  %end;
+%end;
+
+%define;ancestors_horizontally(pp, xx, ss1, ss2, ss3)
+%( ------- improved design of the tree with continuous lines
+           can also optionally display in color occupations (occup=on), birth places (bpl=on) and/or death places (dpl=on)
+           or one place (onepl=on) that is birth place if available and otherwise death place.
+  -------%)
+  %if;(xx > 0)
+    %if;(pp.has_parents)
+      %apply;ancestors_horizontally(
+        "pp.father", xx - 1, "ss1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;",
+        "ss1&nbsp;&#9484;&#9472;&#9472;&nbsp;", "ss1&nbsp;&#9474;&nbsp;&nbsp;&nbsp;")
+    %end;
+    <tt>ss2</tt>%if;(evar.cgl != "on")<a href="%prefix;%pp.access;">%pp;</a>%else;%pp;%end;%pp.title;%pp.dates;
+    %if;((evar.occup = "on" and pp.has_occupation) or ((evar.bpl = "on" or evar.onepl = "on") and pp.has_birth_place) or ((evar.dpl = "on" or evar.onepl = "on") and pp.has_death_place))
+      &nbsp;&nbsp;&nbsp;&nbsp;&#91;
+      %if;(evar.occup = "on" and pp.has_occupation)
+        <font color="mediumblue">%pp.occupation;&nbsp;</font>
+      %end;
+      %if;((evar.bpl = "on" or evar.onepl = "on") and pp.has_birth_place)
+        <em><font color="green">&deg;&nbsp;%pp.birth_place;</font></em>
+      %end;
+      %if;((evar.dpl = "on" or evar.onepl = "on") and pp.has_death_place and not (evar.onepl = "on" and pp.has_birth_place))
+        <em><font color="green">&dagger;&nbsp;%pp.death_place;</font></em>
+      %end;
+      &#93;
+    %end;
+    <br%/>
+    %if;(pp.has_parents)
+      %apply;ancestors_horizontally(
+        "pp.mother", xx - 1, "ss3&nbsp;&#9474;&nbsp;&nbsp;&nbsp;",
+        "ss3&nbsp;&#9492;&#9472;&#9472;&nbsp;", "ss3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
     %end;
   %end;
 %end;
@@ -132,7 +182,7 @@
     </p>
     <table><tr><td style="white-space:nowrap">
     %apply;ancestors_horizontally(
-      "self", xx, "&nbsp;&nbsp;&nbsp;", "--&nbsp;", "&nbsp;&nbsp;&nbsp;")
+      "self", xx, "&nbsp;&nbsp;&nbsp;", "&#9472;&#9472;&nbsp;", "&nbsp;&nbsp;&nbsp;")
     </td></tr></table>
 
   %elseif;(evar.t = "E" and evar.sort != "")
@@ -204,7 +254,6 @@
     </div>
 
     <table class="list_eclair_table">
-      <thead>
       <tr class="list_eclair_table_header">
         <th>[*surname/surnames]0</th>
         <th>[*place]</th>
@@ -213,8 +262,6 @@
         <th>[*nb individuals]</th>
         <th>[*nb events]</th>
       </tr>
-      </thead>
-      <tbody>
       %foreach;sorted_list_item;
         <tr>
           <td>%item.2;%item.3</td>
@@ -245,7 +292,6 @@
           <td align="center">%item.10;</td>
         </tr>
       %end;
-      </tbody>
     </table>
 
   %elseif;(evar.t = "E")
@@ -279,7 +325,6 @@
     </div>
 
     <table class="list_eclair_table">
-      <thead>
       <tr class="list_eclair_table_header">
         <th>[*surname/surnames]0</th>
         <th>[*place]</th>
@@ -288,8 +333,6 @@
         <th>[*nb individuals]</th>
         <th>[*nb events]</th>
       </tr>
-      </thead>
-      <tbody>
       %foreach;ancestor_surname(evar.v)
         <tr>
           <td>
@@ -324,7 +367,6 @@
           <td align="center">%ancestor.nb_events;</td>
         </tr>
       %end;
-      </tbody>
     </table>
 
   %elseif;(evar.t = "F" and evar.sort = "on")
@@ -467,15 +509,12 @@
       </table>
     </div>
     <table class="surname_branch_table">
-      <thead>
       <tr class="surname_branch_table_header">
         <th>[*surname/surnames]0</th>
         <th>[*nb branches]</th>
         <th>[*place]</th>
         <th>[*date/dates]0</th>
       </tr>
-      </thead>
-      <tbody>
       %foreach;ancestor_surname(evar.v)
         <tr>
           <td>
@@ -514,12 +553,13 @@
           </td>
         </tr>
       %end;
-      </tbody>
     </table>
   %end;
 %end;
 
 %base_trailer;
-%copyright;
+%if;(evar.ccopy != "on")
+  %copyright;
+%end;
 </body>
 </html>

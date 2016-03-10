@@ -22,6 +22,15 @@
 <body%body_prop;>
 %message_to_wizard;
 
+%( --- parameters documentation (partial, to be completed) ---
+  imgs :  not present, or "default" -> default size (height="75")
+          "big" -> big (height = "200")
+          number -> custom size (height = "number")
+          other value -> real size of the image
+  pdf : "on" -> removes unwanted links for pdf printing (the slice view link)
+  ccopy : "on" -> removes the copyright section
+%)
+
 %define;a_tree_line()
   %if;(not is_first)
     <tr>
@@ -63,9 +72,15 @@
         <td>%nn;
         %if;(evar.cgl != "on")<a href="%cell.person.image_html_url;">%end;
         <img%sp;
-        src="%cell.person.image_url;"%cell.person.image_small_size;%sp;
-         alt="[image/images]0" title="[image/images]0"%/>%nn;
-        %if;(evar.cgl != "on")</a>%end;</td>%nl;
+        src="%cell.person.image_url;"
+        %if;(evar.imgs != "" and evar.imgs != "default")
+          %if;(evar.imgs = "big")%cell.person.image_size;
+          %elseif;(evar.imgs > 0)height="%evar.imgs;"
+          %end;
+        %else;%cell.person.image_small_size;%end;
+        %sp;alt="[image/images]0" title="[image/images]0"%/>%nn;
+        %if;(evar.cgl != "on")</a>%end;
+        </td>%nl;
         </tr></table>
       %end;
     %end;
@@ -103,7 +118,10 @@
         <a style="text-decoration:none" href="%prefix;
         m=A;t=T;v=%evar.v;;%cell.person.access;
         %if;(evar.image = "on");image=on%end;
-        %if;(evar.marriage = "on");marriage=on%end;">|</a>%nn;
+        %if;(evar.imgs != "");imgs=%evar.imgs;%end;
+        %if;(evar.marriage = "on");marriage=on%end;
+        %if;(evar.pdf = "on");pdf=on%end;
+        %if;(evar.ccopy = "on");ccopy=on%end;">|</a>%nn;
       %end;
       </td>
     %end;
@@ -160,7 +178,7 @@
   %end;%nl;
 %end;
 
-%if;(evar.t = "T")%nn;
+%if;(evar.t = "T" and evar.pdf != "on")%nn;
   <div style="text-align:%right;">%nn;
   <a href="%prefix;m=A;t=T;v=%evar.v;;%access;
   ;dag=on;notab=on;slices=on"><tt>//</tt></a></div>
@@ -192,6 +210,8 @@
 %end;
 
 %base_trailer;
-%copyright;
+%if;(evar.ccopy != "on")
+  %copyright;
+%end;
 </body>
 </html>

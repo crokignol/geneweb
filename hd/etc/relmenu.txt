@@ -11,7 +11,6 @@
   <meta http-equiv="Content-Type" content="text/html; charset=%charset;"%/>
   <meta http-equiv="Content-Style-Type" content="text/css"%/>
   %include.favicon;
-  %include.js;
   %include.css;
   %base_header;
 </head>
@@ -117,8 +116,6 @@
   [*%s cousins:::xx]%nn;
 %end;
 
-%include.perso_header;
-
 <h1>[*link between]%sp;
   %if;(public_name != "")%public_name;%else;%first_name;%end;
   %if;(qualifier != "") <em>%qualifier;</em>%end;
@@ -131,11 +128,23 @@
   [<em>Sosa number</em> relative to %t:::sosa_link]
 %end;
 
+%if;not cancel_links;
+  <table style="float:%right;"><tr><td>
+    %if;(referer != "")
+      <a href="%referer;"><img
+       src="%image_prefix;/left.png"%wid_hei;left.png;
+       alt="&lt;&lt;" title="&lt;&lt;"%/></a>
+    %end;
+    <a href="%prefix;"><img%sp;
+    src="%image_prefix;/up.png"%wid_hei;up.png;
+    alt="^^" title="^^"%/></a>
+  </td></tr></table>
+%end;
 
 
 <div id="rel_search">
   <h2 class="highlight">[*relationship link between]</h2>
-  <form name="relationship" method="get" action="%action;">   
+  <form name="relationship" method="get" action="%action;">
     <p>%hidden;</p>
     <div id="rel_form_search" onclick="document.getElementById('radio_R').checked = 'checked'; main();">
       <input type="hidden" name="em" value="R"%/>
@@ -158,7 +167,7 @@
         <input type="text" name="fn" placeholder="[*first name/first names]0" size="25" maxlength="200"%/>
         <input type="text" name="sn" placeholder="[*surname/surnames]0" size="25" maxlength="200"%/>
         <br%/>
-        <input type="text" name="n" placeholder="[*public name], [*alias] %if;browsing_with_sosa_ref;, [n° Sosa] %end; ..." size="53" maxlength="200"%/>
+        <input type="text" name="v" placeholder="[*public name], [*alias] %if;browsing_with_sosa_ref;, [n° Sosa] %end; ..." size="53" maxlength="200"%/>
       </div>
     </div>
 
@@ -276,24 +285,26 @@
           </label>
         </li>
         %end;
-        %foreach;event_witness_relation;
+        %foreach;family;
+          %foreach;witness;
           <li>
             <label>
-              <input type="radio" name="select" value="%event_witness_relation.person.index;" onclick="main()"%/>
-              %event_witness_relation.person;%nl;
+              <input type="radio" name="select" value="%witness.index;" onclick="main()"%/>
+              %witness;%nl;
               ([witness/witnesses]0)%nl;
             </label>
           </li>
+          %end;
         %end;
       </ul>
     </div>
-  
+
     <div id="rel_options">
       <span>[*relationship display options]</span>
       <ul>
         <li><label><input type="checkbox" name="spouse" value="on"%/> [*display spouse]</label></li>
         <li><label><input type="checkbox" name="image" value="on"%/> [*display picture]1</label></li>
-        <li><label><input type="checkbox" name="long" value="on"%/> [*long display]</label></li>
+        <li><label><input type="checkbox" class="radio" name="bd" value="1"%/> [*display border tree]</label></li>
         <li><label><input name="bd" size="1" maxlength="2" value="0"%/>[*display border tree] </label></li>
         <li>
           <table>
@@ -309,9 +320,21 @@
             </tr>
           </table>
         </li>
+      <li><label>
+        <input type="checkbox" name="cgl" value="on"%/>
+        [*cancel GeneWeb links]
+      </label></li>
+      <li><label>
+        <input type="checkbox" name="pdf" value="on" %(checked="checked"%) %/>
+        [*optimized for pdf export]
+      </label></li>
+      <li><label>
+        <input type="checkbox" name="ccopy" value="on" %(checked="checked"%) %/>
+        [*no copyright]
+      </label></li>
       </ul>
     </div>
-    
+
     <div id="rel_mode">
       <span>[*relationship computing mode]</span>
       <ul>
@@ -329,11 +352,33 @@
         </li>
       </ul>
     </div>
-  
+
     <p class="submit-line">
       <input type="submit" value="[*validate/delete]0"%/>
     </p>
   </form>
+</div>
+
+<div id="rel_others">
+  <div id="rel_see_also" class="moduleExtra">
+   <div>
+    <h2 class="highlight"><span>[*see also]</span></h2>
+    <div>
+     <ul>
+       %if;(died = "" and (wizard or friend))
+         <li>
+           <img src="%image_prefix;/picto_anniversaire_small.png" alt="" title="" %/>
+           <a href="%prefix;%access;;m=C;t=AN">[*family birthday]</a>
+         </li>
+       %end;
+       <li>
+         <img src="%image_prefix;/picto_branche_patronymique.png" alt="" title="" %/>
+         <a href="%prefix;m=A;%access;;sosab=10;v=10;siblings=on;notes=on;src=on;t=F">[*surnames branch]</a> (10 [generation/generations]1)
+       </li>
+     </ul>
+    </div>
+   </div>
+  </div>
 </div>
 
 

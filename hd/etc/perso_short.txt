@@ -3,6 +3,18 @@
 %)
 
 %( Copie sans majuscules %)
+
+%( --- parameters documentation (partial, to be completed) ---
+  tree : "on" -> displays a horizontal ascendant tree of all ancestors listed
+  treemg : <number> -> maximum nb of generations for the display of the horizontal ascendant tree of all ancestors listed
+  occup : "on" -> displays occupation in the horizontal tree (tree = "on")
+  bpl : "on" -> displays the birth places in the horizontal tree (tree = "on")
+  dpl : "on" -> displays the death places in the horizontal tree (tree = "on")
+  onepl : "on" -> displays one place, that is birth place if available and otherwise death place, in the horizontal tree (tree = "on")
+  pdf : "on" -> removes unwanted empty paragraphs for pdf printing
+  ccopy : "on" -> removes the copyright section
+%)
+
 %define;tothegen(xx)
   [to the %s generation:::xx]%nn;
 %end;
@@ -75,7 +87,7 @@
   %foreach;xx.family;
     %if;(family_cnt != 1)
       <tr>
-        <td>%spouse;</td>
+        <td>%spouse;%spouse.title;</td>
         <td align="center">%nb_children;</td>
       </tr>
     %end;
@@ -84,12 +96,12 @@
 
 %define;display_siblings(xx, count)
   <tr %if;(count != 1) class="table_content_siblings" %end;>
-    <td %if;(xx.nb_families > 1) rowspan="%xx.nb_families;" %end;>%apply;image_MF("xx", "11") %xx;</td>
+    <td %if;(xx.nb_families > 1) rowspan="%xx.nb_families;" %end;>%apply;image_MF("xx", "11") %xx;%xx.title;</td>
     %apply;display_date("xx", 1)
     <td>
       %foreach;xx.family;
         %if;(family_cnt = 1)
-          %spouse;
+          %spouse;%spouse.title;
         %end;
       %end;
     </td>
@@ -110,7 +122,9 @@
   <tr%if;(count % 2 = 0) class="table_content_odd"%end;>
     <td>
       %apply;image_MF("xx", "11")
-      %xx;
+      %if;(xx.has_sosa)<a href="#ind_%xx.index;" class="see-more">%xx;</a>%xx.title;
+      %else;%xx;%xx.title;
+      %end;
     </td>
     %apply;display_date("xx", 0)
     <td>%xx.birth_place;</td>
@@ -125,7 +139,10 @@
         <table>
           <tr>
             <td>
-              <b>%spouse;%sp;</b>
+              <b>
+              %if;(spouse.has_sosa and spouse != "? ?")<a href="#ind_%spouse.index;" class="see-more">%spouse;</a></b>%spouse.title;
+              %else;%spouse;</b>%spouse.title;
+              %end;
               %spouse.dates;
             </td>
             <td>
@@ -155,9 +172,9 @@
                   %apply;capitalize(nth([conjoint/conjointe], spouse.sex)): %spouse.marriage_age;
                 %end;
               %end;
-            </td>
+          </td>
           </tr>
-          %if;(are_divorced or are_separated)
+           %if;(are_divorced or are_separated)
             <tr>
               <td colspan="2">
                 %if;are_divorced;[*divorced] %divorce_date;. %end;
@@ -183,12 +200,11 @@
     </table><br/>
   %end;
 
-  %if;(evar.comm = "on" and (has_comment or has_marriage_note))
+  %if;(evar.comm = "on" and has_comment)
     <table class="fp_marriage_notes">
       <tr>
         <td>
           <span class="textcolor">[*marriage notes]:</span> %comment;
-          %if;has_marriage_note;%marriage_note;%end;
         </td>
       </tr>
     </table><br/>
@@ -651,14 +667,128 @@
   %end;
 %end;
 
-%define;print_long_ind(xx)
+%define;display_ancestors_list()
+%( ------- displays the ancestor's list -------%)
+  <ul class="fp_ul_summary">
+    %reset_count;
+    %foreach;ancestor_level(nb_gen)
+      <li><b>[*generation/generations]0 %level;</b></li>
+      <ul>%nl;
+      %foreach;ancestor;
+        %if;(ancestor.same = "")
+          %if;(ancestor != "? ?")%incr_count;%end;
+          <li>
+              %if;(evar.sosa = "on" and ancestor.has_sosa)
+              %ancestor.anc_sosa;%sp;-%sp;
+    	      %end;
+              %if;(ancestor = "? ?")%ancestor;%else;<a href="#ind_%ancestor.index;" class="see-more">%ancestor;</a>%end;%ancestor.title;%ancestor.dates;
+          </li>
+        %else;
+          %if;(evar.sosa = "on" and ancestor.has_sosa)
+          <li>
+              %ancestor.anc_sosa;%sp;=&gt;%sp;
+              %if;(ancestor = "? ?")%ancestor.same;%else;<a href="#ind_%ancestor.index;" class="see-more">%ancestor.same;</a>%end;
+          </li>
+          %end;
+        %end;
+      %end;
+      </ul>
+    %end;
+  </ul>
+  <p>[*total]: %count; [[person/persons]1@(c)]</p>
+%end;
+
+%define;ancestors_horizontally_std(pp, xx, ss1, ss2, ss3)
+%( ------- standard design of the tree (this function is now replaced by the next one) -------%)
+  %if;(xx > 0)
+    %if;(pp.has_parents)
+      %apply;ancestors_horizontally(
+        "pp.father", xx - 1, "ss1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;",
+        "ss1&nbsp;+--&nbsp;", "ss1&nbsp;|&nbsp;&nbsp;&nbsp;")
+    %end;
+    <tt>ss2</tt><a href="#ind_%pp.index;" class="see-more">%pp;</a>%pp.title;%pp.dates;<br%/>
+    %if;(pp.has_parents)
+      %apply;ancestors_horizontally(
+        "pp.mother", xx - 1, "ss3&nbsp;|&nbsp;&nbsp;&nbsp;",
+        "ss3&nbsp;+--&nbsp;", "ss3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
+    %end;
+  %end;
+%end;
+
+%define;ancestors_horizontally(pp, xx, ss1, ss2, ss3, maxgen, uplink)
+%( ------- improved design of the tree with continuous lines
+           can also optionally display in color occupations (occup=on), birth places (bpl=on) and/or death places (dpl=on)
+           or one place (onepl=on) that is birth place if available and otherwise death place.
+  -------%)
+  %if;(xx > 0)
+    %if;(pp.has_parents and (maxgen > 1))
+      %apply;ancestors_horizontally(
+        "pp.father", xx - 1, "ss1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;",
+        "ss1&nbsp;&#9484;&#9472;&#9472;&nbsp;", "ss1&nbsp;&#9474;&nbsp;&nbsp;&nbsp;", maxgen - 1, "")
+    %end;
+    <tt>%if;(uplink = 1)<a href="#ind_tree_lastleaf_%pp.index;" class="tree-link">%end;ss2</tt>
+    %(-- in the line above, when uplink=1, the closing </a> is inside the ss2 variable --%)
+    %if;(pp = "? ?")%pp;%else;<a href="#ind_%pp.index;" class="see-more">%pp;</a>%end;%pp.title;%pp.dates;
+    %if;((evar.occup = "on" and pp.has_occupation) or ((evar.bpl = "on" or evar.onepl = "on") and pp.has_birth_place) or ((evar.dpl = "on" or evar.onepl = "on") and pp.has_death_place))
+      &nbsp;&nbsp;&nbsp;&nbsp;&#91;
+      %if;(evar.occup = "on" and pp.has_occupation)
+        <font color="mediumblue">%pp.occupation;&nbsp;</font>
+      %end;
+      %if;((evar.bpl = "on" or evar.onepl = "on") and pp.has_birth_place)
+        <em><font color="green">&deg;&nbsp;%pp.birth_place;</font></em>
+      %end;
+      %if;((evar.dpl = "on" or evar.onepl = "on") and pp.has_death_place and not (evar.onepl = "on" and pp.has_birth_place))
+        <em><font color="green">&dagger;&nbsp;%pp.death_place;</font></em>
+      %end;
+      &#93;
+    %end;
+    %if;(pp.has_parents and (maxgen = 1))&nbsp;<a name="ind_tree_lastleaf_%pp.index;" href="#ind_tree_root_%pp.index;" class="tree-link">&rArr;</a>%end;
+    <br%/>
+    %if;(pp.has_parents and (maxgen > 1))
+      %apply;ancestors_horizontally(
+        "pp.mother", xx - 1, "ss3&nbsp;&#9474;&nbsp;&nbsp;&nbsp;",
+        "ss3&nbsp;&#9492;&#9472;&#9472;&nbsp;", "ss3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;", maxgen - 1, "")
+    %end;
+  %end;
+%end;
+
+%define;display_ancestors_tree(pp, nb_gen, max_tree_gen)
+%( ------- displays the ancestor's tree -------%)
+    <table><tr><td style="white-space:nowrap">
+    %apply;ancestors_horizontally(
+      "pp", nb_gen, "&nbsp;&nbsp;&nbsp;", "&#9472;&#9472;&nbsp;", "&nbsp;&nbsp;&nbsp;", max_tree_gen, 0)
+    </td></tr></table>
+    %if(max_tree_gen < nb_gen)
+      %foreach;ancestor_level(nb_gen)
+        %if(level=max_tree_gen or level=(2 * max_tree_gen -1) or level=(3 * max_tree_gen -2) or level=(4 * max_tree_gen -3)  or level=(5 * max_tree_gen -4)  or level=(6 * max_tree_gen -5))
+          <br/>
+          <p style="page-break-before:always;%if;(evar.pdf = "on")font-size:1px;%end;">&nbsp;</p>
+          <b>[*trees]0 %apply;nth([nth (generation)], level) [generation/generations]0 </b><br/>
+          %foreach;ancestor;
+            %if(ancestor.has_parents)
+              <table><tr><td style="white-space:nowrap">
+              <a name="ind_tree_root_%ancestor.index;"></a>
+              %apply;ancestors_horizontally(
+               "ancestor", nb_gen - level +1, "&nbsp;&nbsp;&nbsp;", "&lArr;&#9472;</a>&nbsp;", "&nbsp;&nbsp;&nbsp;", max_tree_gen, 1)
+              </td></tr></table>
+            %end;
+          %end;
+        %end;
+      %end;
+    %end;
+%end;
+
+%define;print_long_ind(xx,nb_remaining_gen)
+%( ------- displays the individual record -------%)
   <div class="fp_person">
     <table width="100%%">
       <tr>
         <td>
           <table>
             <tr>
-              <td><h2><span class="highlight"><a name="ind_%xx.index;">%xx;</a></span></h2></td>
+              <td><h2><span class="highlight"><a name="ind_%xx.index;">%xx.first_name;%sp;
+              %if;xx.has_qualifiers;<em>%xx.qualifier;</em>%sp;%end;
+              %xx.surname;</a></span></h2></td>
               <td>%apply;image_MF("xx", "13")</td>
             </tr>
           </table>
@@ -672,6 +802,7 @@
         </td>
       </tr>
     </table>
+
     <div class="fp_person_info">
       %if;(evar.image = "on" and xx.has_image)
         <table width="100%%">
@@ -682,12 +813,22 @@
             <td valign="top">
       %end;
       <ul class="fp_person_info_ul">
+        %if;xx.has_public_name;
+          <li>
+            <span class="fp_grey_italic">[*public name]:</span>
+            %xx.public_name;
+          </li>
+        %end;
+        %if;xx.has_qualifiers;
+          <li>
+            <span class="fp_grey_italic">[*qualifier]1:</span>
+            %foreach;xx.qualifier;<em>%if;not is_first;,%end;&nbsp;%qualifier;</em>%end;
+          </li>
+        %end;
         %if;xx.has_aliases;
           <li>
             <span class="fp_grey_italic">[*alias]:</span>
-            %foreach;xx.alias;
-              <em>%if;not is_first;,%end;&nbsp;%alias;</em>
-            %end;
+            %foreach;xx.alias;<em>%if;not is_first;,%end;&nbsp;%alias;</em>%end;
           </li>
         %end;
         %if;xx.has_nobility_titles;
@@ -695,10 +836,24 @@
             <span class="fp_grey_italic">[*title/titles]1:</span>
             <em>
               %foreach;xx.nobility_title;
-                %if;not is_first;,%end;
+                %if;not is_first;,%sp;%end;
                 %nobility_title;
               %end;
             </em>
+          </li>
+        %end;
+        %if;xx.has_first_names_aliases;
+          <li>
+            %foreach;xx.first_name_alias;
+              <span class="fp_grey_italic">[*first name alias]:</span>%sp;%first_name_alias;&nbsp;&nbsp;&nbsp;
+            %end;
+          </li>
+        %end;
+        %if;xx.has_surnames_aliases;
+          <li>
+            %foreach;xx.surname_alias;
+              <span class="fp_grey_italic">[*surname alias]:</span>%sp;%surname_alias;&nbsp;&nbsp;&nbsp;
+            %end;
           </li>
         %end;
         %if;xx.has_occupation;
@@ -734,18 +889,11 @@
             %if;xx.has_death_place;%sp;[in (place)]%sp;%xx.death_place;%end;
           </li>
         %end;
-        %if;xx.is_buried;
+        %if;(xx.has_burial_date or xx.has_burial_place)
           <li>
             <span class="fp_grey_italic">%apply;capitalize(nth([buried],xx.sex))</span>
             %xx.on_burial_date;
             %if;xx.has_burial_place;%sp;[in (place)]%sp;%xx.burial_place;%end;
-          </li>
-        %end;
-        %if;xx.is_cremated;
-          <li>
-            <span class="fp_grey_italic">%apply;capitalize(nth([cremated],xx.sex))</span>
-            %xx.on_cremation_date;
-            %if;xx.has_cremation_place;%sp;[in (place)]%sp;%xx.cremation_place;%end;
           </li>
         %end;
       </ul>
@@ -760,8 +908,12 @@
       <tr><th colspan="2">[*parents]</th></tr>
       <tr>
         <td>
-          <span class="fp_grey_italic">%apply;capitalize(nth([father/mother],xx.father.sex)):</span>
-          %xx.father;
+          <span class="fp_grey_italic">[*father/mother]0:</span>
+          %if;(nb_remaining_gen = 0 or xx.father = "? ?")
+            %xx.father;%xx.father.title;
+          %else;
+            <a href="#ind_%xx.father.index;" class="see-more">%xx.father;</a>%xx.father.title;
+          %end;
           %if;(xx.father_age_at_birth != "")%sp;(%xx.father_age_at_birth;)%end;
         </td>
         <td>
@@ -773,8 +925,12 @@
       </tr>
       <tr>
         <td>
-          <span class="fp_grey_italic">%apply;capitalize(nth([father/mother],xx.mother.sex)):</span>
-          %xx.mother;
+          <span class="fp_grey_italic">[*father/mother]1:</span>
+          %if;(nb_remaining_gen = 0 or xx.mother = "? ?")
+            %xx.mother;%xx.mother.title;
+          %else;
+            <a href="#ind_%xx.mother.index;" class="see-more">%xx.mother;</a>%xx.mother.title;
+          %end;
           %if;(xx.mother_age_at_birth != "")%sp;(%xx.mother_age_at_birth;)%end;
         </td>
         <td>
@@ -785,6 +941,41 @@
         </td>
       </tr>
     </table>
+  %end;
+
+  %if;(evar.marr = "on" and xx.has_families)
+    <div style="page-break-inside:avoid;">
+      <table class="fp_table_marriage" cellspacing="0">
+        <tr>
+          <th>
+            %reset_count;
+            %foreach;xx.family;
+              %if;not(are_married)%incr_count;%end;
+            %end;
+            %let;nb_unmarried_relations;%count;%in;
+            %let;nb_married_relations;%expr(xx.nb_families - nb_unmarried_relations)%in;
+            %if;(nb_married_relations > 0)%if;(nb_married_relations = 1)[*marriage/marriages]0%else;[*marriage/marriages]1%end;%end;
+            %if;(nb_unmarried_relations > 0)
+              %if;(nb_married_relations > 0)
+                %if;(nb_unmarried_relations = 1),%sp;[relation/relations]0%else;,%sp;[relation/relations]1%end;
+              %else;%if;(nb_unmarried_relations = 1)[*relation/relations]0%else;[*relation/relations]1%end;
+              %end;
+            %end;
+            %( ---- [relation/relations] is maybe not the best lexicon entry but there is currently
+                     no better entry ([relationship%t to] cannot be used) ---- %)
+            %if;(evar.children = "on" and xx.has_children) [and::child/children]1%end;
+          </th>
+        </tr>
+        <tr>
+          <td>
+            %foreach;xx.family;
+              %apply;display_union("xx")
+              %if;(family_cnt != xx.nb_families)<hr class="fp_family_separator"%/>%end;
+            %end;
+          </td>
+        </tr>
+      </table>
+    </div>
   %end;
 
   %if;(evar.siblings = "on" and (xx.has_siblings or (xx.has_parents and (xx.father.nb_families > 1 or xx.mother.nb_families > 1))))
@@ -943,83 +1134,15 @@
             %end;
           %end;
         %end;
-        %foreach;xx.event_witness_relation;
-          <tr class="table_content_relations">
-            <td class="borderna">
-              %apply;image_MF("event_witness_relation.person", "11") %event_witness_relation.person; %sp;
-              %if;(event_witness_relation.event.spouse != "")
-                [and]
-                %apply;image_MF("event_witness_relation.event.spouse", "11") %event_witness_relation.event.spouse; %sp;
-              %end;
-              (%apply;capitalize(event_witness_relation_kind) :%sp;
-              %event_witness_relation.event.name;)
-            </td>
-            %apply;display_date("event_witness_relation.person", 0)
-          </tr>
-        %end;
       </table>
     </div>
   %end;
 
-  %if;(evar.marr = "on" and xx.has_families)
-    <div style="page-break-inside:avoid;">
-      <table class="fp_table_marriage" cellspacing="0">
-        <tr>
-          <th>
-            [*marriage/marriages]1 %if;(evar.children = "on" and xx.has_children) [and::child/children]1%end;
-          </th>
-        </tr>
-        <tr>
-          <td>
-            %foreach;xx.family;
-              %apply;display_union("xx")
-              %if;(family_cnt != xx.nb_families)<hr class="fp_family_separator"%/>%end;
-            %end;
-          </td>
-        </tr>
-      </table>
-    </div>
-  %end;
-
-  %if;(evar.note = "on" and (xx.has_notes or xx.has_event))
-    <div style="page-break-inside:avoid;">
+  %if;(evar.note = "on" and xx.has_notes)
+    <div style="page-break-inside:auto;">
       <table class="fp_table" cellspacing="0">
         <tr><th>[*note/notes]1</th></tr>
-        <tr><td class="fp_notes">
-          %xx.notes;
-          %if;xx.has_event;
-            <table>
-              %foreach;xx.event;
-                <tr>
-                  <td valign="top" style="white-space: nowrap;" width="1">
-                    <span class="edate">
-                      %if;event.has_date;%event.date; :
-                      %else;--- :
-                      %end;
-                    </span>
-                  </td>
-                  <td valign="top">
-                    <span>
-                      %apply;capitalize(event.name)%sp;
-                      %if;event.has_spouse;([with] %event.spouse;)%end;
-                      %if;event.has_place; - %event.place; %end;
-                    </span>
-                    %if;event.has_witnesses;
-                      <p style="margin:0;">
-                        %foreach;event_witness;
-                          <span>%apply;capitalize(event_witness_kind) :</span>
-                          %apply;short_display_person("event_witness")<br/>
-                        %end;
-                      </p>
-                    %end;
-                    %if;event.has_note;<div>%event.note;</div>%end;
-                      %if;event.has_src;<span><em>[*source/sources]1: %event.src;</em></span>%end;
-                  </td>
-                </tr>
-              %end;
-            </table>
-          %end;
-        </td></tr>
+        <tr><td class="fp_notes">%xx.notes;</td>
       </table>
     </div>
   %end;
@@ -1038,7 +1161,7 @@
       <table class="fp_table" cellspacing="0">
         <tr><th>[*source/sources]1</th></tr>
         <tr>
-          <td>
+          <td class="fp_table_sources">
             <ul class="fp_source">
               %foreach;xx.source;
                 <li>%source_type;: %source;</li>
@@ -1053,40 +1176,46 @@
 
 <div class="page_max">
   %let;nb_gen;%apply;min(evar.v, max_anc_level)%in;
+  %let;max_tree_gen;%if(evar.treemg = "")%nb_gen;%else;%evar.treemg;%end;%in;
   %if;(evar.v > 1)
     <span width=100%%">
       <hr%/>
-      %apply;capitalize(nth([summary book ascendants], 3))%sp;
+      <div class="records_to_gen">
+      [*records]%sp;
+      %(   %apply;capitalize(nth([summary book ascendants], 3))%sp;  %)
+      %( -- la fonction nth ne servait à rien ici car "summary book ascendants" n'a qu'une entrée dans le lexique!? -- %)
       %apply;togen(nb_gen).
+      </div>
+        <ul class="menu_asc_book">
+          <li><a href="#asc_list">[*list/list (ancestors)]1</a></li>
+          %if;(evar.tree = "on")<li><a href="#asc_tree">[*tree]0</a></li>%end;
+          <li><a href="#asc_records">[*records]</a></li>
+        </ul>
       <hr%/>
     </span>
-    <ul class="fp_ul_summary">
-      %foreach;ancestor_level(nb_gen)
-        %apply;lazy_print%with;
-          <li><b>[*generation/generations]0 %level;</b></li>
-        %end;
-        %foreach;ancestor;
-          %lazy_force;
-          %if;(ancestor.same = "")
-            <li>
-              <a href="#ind_%ancestor.index;" class="see-more">%ancestor;</a>
-    	        %if;(evar.sosa = "on" and ancestor.has_sosa)
-                ([n° Sosa]&nbsp;:%sp;%ancestor.sosa;)
-    	        %end;
-            </li>
-          %end;
-        %end;
+    <h3><a name="asc_list">[*list/list (ancestors)]1</a></h3>
+    %apply;display_ancestors_list()
+    %if;(evar.tree = "on")
+      <p style="page-break-before:always;font-size:1px;">&nbsp;</p>
+      <h3><a name="asc_tree">[*tree]0</a></h3>
+      %apply;display_ancestors_tree("self",nb_gen,max_tree_gen)
+      %if;(evar.pdf != "on")
+        <p>&nbsp;</p>
       %end;
-    </ul>
-    <p style="page-break-after:always;">&nbsp;</p>
+    %end;
   %end;
+
+  %apply;lazy_print%with;<a name="asc_records"></a>%end;
 
   %foreach;ancestor_level(nb_gen)
     %foreach;ancestor;
-      %if;(ancestor.same = "")
-        %apply;print_long_ind("ancestor")
-        %if;(not (is_last and level = nb_gen))
-          <p style="page-break-after:always;">&nbsp;</p>
+      %if;(ancestor.same = "" and ancestor != "? ?")
+        <p style="page-break-before:always;font-size:1px;">&nbsp;</p>
+        %lazy_force;
+        %let;nb_remaining_gen;%expr(nb_gen - level)%in;
+        %apply;print_long_ind("ancestor",nb_remaining_gen)
+        %if;(evar.pdf != "on")
+          <p>&nbsp;</p>
         %end;
       %end;
     %end;

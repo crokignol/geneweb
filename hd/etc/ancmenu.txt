@@ -15,8 +15,8 @@
   <meta name="robots" content="none"%/>
   <meta http-equiv="Content-Type" content="text/html; charset=%charset;"%/>
   <meta http-equiv="Content-Style-Type" content="text/css"%/>
+  <script type="text/javascript" src="jquery_1_9_1_min.js"></script>
   %include.favicon;
-  %include.js;
   %include.css;
   %base_header;
 </head>
@@ -41,12 +41,9 @@ function table_options () {
 
   /* On ne coche que celle qu'on veut. */
   $('input[type=checkbox][id=t_birth]').prop('checked', true);
-  $('input[type=checkbox][id=t_birth_place]').prop('checked', true);
   $('input[type=checkbox][id=t_marr]').prop('checked', true);
   $('input[type=checkbox][id=t_marr_date]').prop('checked', true);
-  $('input[type=checkbox][id=t_marr_place]').prop('checked', true);
   $('input[type=checkbox][id=t_death]').prop('checked', true);
-  $('input[type=checkbox][id=t_death_place]').prop('checked', true);
   $('input[type=checkbox][id=t_gen]').prop('checked', true);
   $('input[type=checkbox][id=t_repeat]').prop('checked', true);
 }
@@ -56,10 +53,16 @@ function book_of_ascendants_options () {
   $('input[type=checkbox]').prop('checked', false);
 
   /* On ne coche que celle qu'on veut. */
-  $('input[type=checkbox][id=boa_person]').prop('checked', true);
+  $('input[type=checkbox][id=boa_tree]').prop('checked', true);
+  $('input[type=checkbox][id=boa_image]').prop('checked', true);
+  $('input[type=checkbox][id=boa_sosa]').prop('checked', true);
+  $('input[type=checkbox][id=boa_note]').prop('checked', true);
+  $('input[type=checkbox][id=boa_relations]').prop('checked', true);
   $('input[type=checkbox][id=boa_parents]').prop('checked', true);
-  $('input[type=checkbox][id=boa_siblings]').prop('checked', true);
   $('input[type=checkbox][id=boa_marr]').prop('checked', true);
+  $('input[type=checkbox][id=boa_children]').prop('checked', true);
+  $('input[type=checkbox][id=boa_comm]').prop('checked', true);
+  $('input[type=checkbox][id=boa_src]').prop('checked', true);
 }
 
 function missing_ancestors_options () {
@@ -91,7 +94,6 @@ function no_options () {
 
 --></script>
 
-%include.perso_header;
 
 <h1>%nn;
   %apply;a_of_b%with;
@@ -108,6 +110,22 @@ function no_options () {
   [*to the %s generation:::xx]%nn;
 %end;
 
+%define;navsosa(xx)
+  [*navigation with %t as Sosa reference:::xx].
+%end;
+
+%if;not cancel_links;
+  <table style="float:%right;"><tr><td>
+    %if;(referer != "")
+      <a href="%referer;"><img
+       src="%image_prefix;/left.png"%wid_hei;left.png;
+       alt="&lt;&lt;" title="&lt;&lt;"%/></a>
+    %end;
+    <a href="%prefix;"><img%sp;
+    src="%image_prefix;/up.png"%wid_hei;up.png;
+    alt="^^" title="^^"%/></a>
+  </td></tr></table>
+%end;
 
 <form method="get" action="%action;">
   <p>
@@ -124,7 +142,7 @@ function no_options () {
     %end;
     <input type="hidden" name="sosab" value="10"%/>
   </p>
-  
+
   <div style="text-align:center;"><div style="display:inline-block; text-align:left; padding-bottom: 25px;">
     <div class="ascends_menu_list">
       <label>
@@ -140,7 +158,7 @@ function no_options () {
         <label><input type="radio" name="sosab" value="16"%/>16</label>
       </div>
 %)
-    
+
       <label>
         <input type="radio" name="t" value="G" onclick="long_display_options()"%/>
         [*long display] (*)
@@ -163,7 +181,7 @@ function no_options () {
         <p class="ascends_menu_option_p">
           <label>
             <input type="checkbox" id="ld_notes" name="notes" value="on"%/>
-            [*individual notes]
+            [*note/notes]1
           </label>
           <label>
             <input type="checkbox" id="ld_src" name="src" value="on"%/>
@@ -181,7 +199,7 @@ function no_options () {
           </label>
         </p>
       </div>
-    
+
       <label>
         <input type="radio" name="t" value="Z" onclick="table_options()"%/>
         [*table] (*)
@@ -193,7 +211,7 @@ function no_options () {
           [*date of birth]
         </label>
         <label>
-          <input type="checkbox" id="t_birth_place" name="birth_place" value="on"%/>
+          <input type="checkbox" name="birth_place" value="on"%/>
           [*where born]
         </label>
       </p>
@@ -207,7 +225,7 @@ function no_options () {
           [*date of marriage]
         </label>
         <label>
-          <input type="checkbox" id="t_marr_place" name="marr_place" value="on"%/>
+          <input type="checkbox" name="marr_place" value="on"%/>
           [*where married]
         </label>
         <label>
@@ -221,7 +239,7 @@ function no_options () {
           [*date of death]
         </label>
         <label>
-          <input type="checkbox" id="t_death_place" name="death_place" value="on"%/>
+          <input type="checkbox" name="death_place" value="on"%/>
           [*where dead]
         </label>
         <label>
@@ -254,20 +272,33 @@ function no_options () {
       <div class="ascends_menu_option_div">
       <p class="ascends_menu_option_p">
         <label>
-          <input type="checkbox" id="boa_person"%/>
-          [*person/persons]0
+          <input type="checkbox" id="boa_tree" name="tree" value="on"%/>
+          [*ascendants tree] ([horizontally])
         </label>
         <label>
-          <input type="checkbox" name="image" value="on"%/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[*generations per tree]
+          <input name="treemg" size="1" maxlength="2" %/>
+        </label>
+      </p>
+      <p class="ascends_menu_option_p">
+        <label>
+          [*person/persons]0&nbsp;:
+        </label>
+        <label>
+          <input type="checkbox" id="boa_image" name="image" value="on"%/>
           [*image/images]0
         </label>
         <label>
-          <input type="checkbox" name="sosa" value="on"%/>
+          <input type="checkbox" id="boa_sosa" name="sosa" value="on"%/>
           [*Sosa]
         </label>
         <label>
-          <input type="checkbox" name="note" value="on"%/>
-          [*note/notes]1
+          <input type="checkbox" id="boa_note" name="note" value="on"%/>
+          [*individual notes]
+        </label>
+        <label>
+          <input type="checkbox" id="boa_asc" name="asc" value="on"%/>
+          [*tree]0
         </label>
       </p>
       <p class="ascends_menu_option_p">
@@ -294,29 +325,23 @@ function no_options () {
           [*marriage/marriages]1
         </label>
         <label>
-          <input type="checkbox" name="children" value="on"%/>
+          <input type="checkbox" id="boa_children" name="children" value="on"%/>
           [*child/children]1
         </label>
         <label>
-          <input type="checkbox" name="comm" value="on"%/>
+          <input type="checkbox" id="boa_comm" name="comm" value="on"%/>
           [*marriage notes]
         </label>
       </p>
       <p class="ascends_menu_option_p">
         <label>
-          <input type="checkbox" name="asc" value="on"%/>
-          [*ascendants tree]
-        </label>
-      </p>
-      <p class="ascends_menu_option_p">
-        <label>
-          <input type="checkbox" name="src" value="on"%/>
+          <input type="checkbox" id="boa_src" name="src" value="on"%/>
           [*source/sources]1
         </label>
       </p>
       </div>
     </div>
-    
+
     <div class="ascends_menu_tree">
       <label>
         <input type="radio" name="t" value="T" onclick="no_options()"%/>
@@ -342,6 +367,11 @@ function no_options () {
         <label>
           <input type="checkbox" name="image" value="on"%/>
           [*image/images]1
+        </label>
+        <br%/>
+        <label>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[*size] (default=75)
+          <input name="imgs" size="1" maxlength="3" %/>
         </label>
         <br%/>
         <label>
@@ -382,7 +412,7 @@ function no_options () {
         </table>
       </div>
     </div>
-    
+
     <div class="ascends_menu_other">
       <label>
         <input type="radio" name="t" value="L" onclick="no_options()"%/>
@@ -393,27 +423,45 @@ function no_options () {
           ([maximum] %bvar.max_anc_level; [generation/generations]1)
         %end;
       </label><br%/>
-    
+
       <label>
         <input type="radio" name="t" value="H" onclick="no_options()"%/>
-        [*horizontally]
+        [*horizontally] ([tree])
         %if;(bvar.max_anc_level = "" and max_anc_level >= 8)
           ([maximum] 8 [generation/generations]1)
         %elseif;(bvar.max_anc_level != "" and max_anc_level >= bvar.max_anc_level)
           ([maximum] %bvar.max_anc_level; [generation/generations]1)
         %end;
       </label><br%/>
-    
+      <div class="ascends_menu_option_div">
+        <label>
+          <input type="checkbox" name="occup" value="on"%/>
+          [*occupation/occupations]1
+        </label><br%/>
+        <label>
+          <input type="checkbox" name="bpl" value="on"%/>
+          [*place] : [birth]0
+        </label><br%/>
+        <label>
+          <input type="checkbox" name="dpl" value="on"%/>
+          [*place] : [death]0
+        </label><br%/>
+        <label>
+          <input type="checkbox" name="onepl" value="on"%/>
+          1 [place]0 ([birth]0 [else]0 [death]0)
+        </label>
+      </div>
+
       <label>
         <input type="radio" name="t" value="E" onclick="no_options()"%/>
         [*list eclair]
       </label><br%/>
-    
+
       <label>
         <input type="radio" name="t" value="F" onclick="no_options()"%/>
         [*surnames branch]
       </label><br%/>
-    
+
       <label>
         <input type="radio" name="t" value="M" onclick="missing_ancestors_options()"%/>
         [*missing ancestors]
@@ -473,12 +521,26 @@ function no_options () {
       </div>
     </div>
   </div></div>
-  
+
   <div class="ascends_menu_valid">
     <label>
       <input type="checkbox" name="cgl" value="on"%/>
       [*cancel GeneWeb links]
-    </label><br%/>
+    </label>
+    <label>
+      <input type="checkbox" name="noimgMF" value="on"%/>
+      Pas d'images <img width="11" height="11" src="%image_prefix;/male.png"%sp; style="border: none" alt="[M/F]1"%/>/
+      <img width="11" height="11" src="%image_prefix;/female.png"%sp; style="border: none" alt="[M/F]1"%/>
+    </label>
+    <label>
+      <input type="checkbox" name="pdf" value="on" %(checked="checked"%) %/>
+      [*optimized for pdf export]
+    </label>
+    <label>
+      <input type="checkbox" name="ccopy" value="on" %(checked="checked"%) %/>
+      [*no copyright]
+    </label>
+    <br%/>
     <label>
       <input type="checkbox" name="only" value="on"%/>
       (*) [*only the generation selected]
@@ -503,6 +565,14 @@ function no_options () {
     <input type="submit" value="Ok"%/>
   </div>
 </form>
+
+<p style="text-align:center;">
+  %apply;navsosa%with;
+    <a href="%prefix_no_iz;iz=%index;">%self;</a>%nn;
+    %if;has_nobility_titles;, <em>%nobility_title;</em>%end;%nl;
+  %end;
+</p>
+
 
 %base_trailer;
 %copyright;
