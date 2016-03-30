@@ -3,14 +3,11 @@
 
 module MLink = Api_link_tree_piqi
 module MLinkext = Api_link_tree_piqi_ext
-
+module RRC = Redis.Redis_sync.Client
 
 open Config
 open Def
 open Gwdb
-
-open Redis
-open Redis_sync.Client
 
 
 (* base redis contenant tous les liens. *)
@@ -28,8 +25,8 @@ let api_servers = ref [] ;;
 (**/**) (* Redis. *)
 
 let create_redis_connection () =
-  let connection_spec = {host = !redis_host; port = !redis_port} in
-  connect connection_spec
+  let connection_spec = {RRC.host = !redis_host; RRC.port = !redis_port} in
+  RRC.IO.run (RRC.connect connection_spec)
 ;;
 
 let redis_p_key conf base ip =
@@ -65,21 +62,21 @@ let filter_string l =
 
 (* Trouve une key en fonction de l'utilisateur et d'une référence GW *)
 let findKeyBySourcenameAndRef redis bname geneweb_key =
-  zscore redis ("lia.keys." ^ bname) geneweb_key
+  RRC.IO.run (RRC.zscore redis ("lia.keys." ^ bname) [geneweb_key])
 ;;
 
 let findBridgesBySourcenameAndIdGlinks redis bname i =
-  let l = zrangebyscore redis ("lia.bridges." ^ bname) i i in
-  filter_bulk l
+  let l = RRC.zrangebyscore redis ("lia.bridges." ^ bname) i i in
+  filter_bulk (RRC.IO.run l)
 ;;
 
 let findLinksBySourcenameAndBridge redis bname s =
-  hget redis ("lia.links." ^ bname) s
+  RRC.IO.run (RRC.hget redis ("lia.links." ^ bname) s)
 ;;
 
 let findKeyBySourcenameAndIdGlinks redis bname i =
-  let l = zrangebyscore redis ("lia.keys." ^ bname) i i in
-  filter_bulk l
+  let l = RRC.zrangebyscore redis ("lia.keys." ^ bname) i i in
+  filter_bulk (RRC.IO.run l)
 ;;
 
 let json_list_of_string s =
